@@ -1,0 +1,376 @@
+import axiosInstance from "../utils/authInterceptor";
+import { useParams, useNavigate } from "react-router-dom";
+import { useEffect, useState, useContext } from "react";
+import { toast } from "react-toastify";
+import { store } from "../context/StoreProvider";
+import { Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
+import { p } from "framer-motion/client";
+
+const RequestDetails = () => {
+    const { id } = useParams();
+    const navigate = useNavigate();
+    const { user } = useContext(store);
+
+    const [request, setRequest] = useState(null);
+    const [loading, setLoading] = useState(false);
+
+    // Technician update states
+    const [statusUpdate, setStatusUpdate] = useState("");
+    const [amountUpdate, setAmountUpdate] = useState("");
+    const [newImages, setNewImages] = useState([]);
+
+    const [cashfreeReady, setCashfreeReady] = useState(false);
+    const [paymentDone, setPaymentDone] = useState(false);
+
+
+
+    // Role detection
+    const isTechnician = user?.role === "technician";
+    const isAdmin = user?.role === "admin";
+    const isUser = user?.role === "user";
+
+    const fetchRequest = async () => {
+        try {
+            const res = await axiosInstance.get(`/request/show/${id}`);
+            if (res.status === 200) {
+                setRequest(res.data);
+                setStatusUpdate(res.data.status);
+                setAmountUpdate(res.data.paymentAmount || "");
+            }
+        } catch {
+            toast.error("Error fetching request");
+        }
+    };
+
+    useEffect(() => {
+        fetchRequest();
+    }, [id]);
+
+    // ------------------------------
+    // Technician updates request
+    // ------------------------------
+    const handleUpdate = async () => {
+        try {
+            const formData = new FormData();
+            formData.append("status", statusUpdate);
+            formData.append("paymentAmount", amountUpdate);
+
+            newImages.forEach((img) => {
+                formData.append("image", img);
+            });
+
+            setLoading(true);
+            const res = await axiosInstance.put(
+                `/request/update/${request._id}`,
+                formData,
+                { headers: { "Content-Type": "multipart/form-data" } }
+            );
+
+            if (res.status === 200) {
+                toast.success("Updated successfully!");
+                setRequest(res.data);
+            }
+        } catch (error) {
+            toast.error("Update failed");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // ------------------------------
+    // Admin Delete Request
+    // ------------------------------
+    const handleDelete = async () => {
+        if (!window.confirm("Are you sure you want to delete this request?")) return;
+
+        try {
+            setLoading(true);
+            const res = await axiosInstance.delete(`/request/delete/${id}`);
+
+            if (res.status === 200) {
+                toast.success("Request deleted!");
+                navigate(-1);
+            }
+        } catch (error) {
+            toast.error("Failed to delete request.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // ------------------------------
+    // User Make Payment
+    // ------------------------------
+
+    useEffect(() => {
+        const script = document.createElement("script");
+        script.src = import.meta.env.VITE_CASHFREE_SDK;
+        script.async = true;
+        script.onload = () => setCashfreeReady(true);
+        document.body.appendChild(script);
+
+        return () => {
+            document.body.removeChild(script);
+        };
+    }, []);
+
+
+    const createPaymentSession = async () => {
+        try {
+            setLoading(true);
+
+            const res = await axiosInstance.post(`/payment/order/${id}`, {
+                email: user.email,
+                phone: user.phone,
+                name: user.name,
+            });
+
+            if (res.status === 200) {
+                startPayment(res.data.paymentSessionId);
+            }
+        } catch (err) {
+            toast.error("Failed to initiate payment");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+
+
+
+
+    const startPayment = (sessionId) => {
+        if (!cashfreeReady || !window.Cashfree) {
+            toast.error("Payment system not ready");
+            return;
+        }
+
+        const cashfree = window.Cashfree({ mode: "sandbox" });
+
+        cashfree.checkout({
+            paymentSessionId: sessionId,
+            redirectTarget: "_modal",
+        }).then(async (result) => {
+
+            if (result?.error) {
+                toast.error("Payment cancelled or failed");
+                return;
+            }
+
+            if (result?.paymentDetails) {
+                if (result?.paymentDetails) {
+                    console.log("requesr",request);
+                    toast.info("Verifying payment...");
+
+                    await axiosInstance.get(
+                        `/payment/verify/${id}`
+                    );
+
+                    await fetchRequest();
+
+                    toast.success("Payment confirmed");
+                }
+            }
+        });
+    };
+
+
+
+
+    if (!request) return <p className="p-4">No data found.</p>;
+
+    return (
+        <div className="p-6 my-10 max-w-4xl mx-auto bg-gray-100 min-h-screen rounded-lg shadow-md">
+
+            {/* Back Button */}
+            <div className="flex">
+                <button
+                    onClick={() => navigate(-1)}
+                    className="mb-4 px-4 py-2 cursor-pointer bg-gray-600 hover:bg-gray-700 text-white rounded-lg"
+                >
+                    Back
+                </button>
+
+                {/* Admin Delete */}
+                {isAdmin && (
+                    <button
+                        onClick={handleDelete}
+                        className={`mb-4 ml-4 px-4 py-2 rounded-lg transition cursor-pointer flex items-center justify-center gap-2
+    ${loading ? "bg-red-300 cursor-not-allowed text-black" : "bg-red-600 text-white hover:bg-red-700"}`}
+                    >
+                        {loading ? (
+                            <>
+                                <motion.div
+                                    animate={{ rotate: 360 }}
+                                    transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                                >
+                                    <Loader2 className="w-5 h-5" />
+                                </motion.div>
+                                Processing...
+                            </>
+                        ) : (
+                            "Delete Request"
+                        )}
+                    </button>
+                )}
+            </div>
+
+            <h2 className="text-2xl font-bold mb-6 text-gray-800">Request Details</h2>
+
+            {/* Grid Two Column */}
+            <div className="grid md:grid-cols-2 gap-4">
+
+                {/* Left Column */}
+                <div className="space-y-2 text-gray-700 bg-white p-4 rounded-xl shadow">
+                    <h3 className="text-xl font-semibold mb-3">Device Information</h3>
+                    <p><strong>Type:</strong> {request.type}</p>
+                    <p><strong>Brand:</strong> {request.brand}</p>
+                    <p><strong>Model:</strong> {request.model}</p>
+                    <p><strong>IMEI:</strong> {request.imei || "Not Provided"}</p>
+                    <p><strong>Issue:</strong> {request.issue}</p>
+                    <p><strong>Issue Description:</strong> {request.issueDescription}</p>
+                    <p><strong>Status:</strong> {request.status}</p>
+                </div>
+
+                {/* Right Column */}
+                <div className="space-y-2 flex flex-col justify-around text-gray-700 bg-white p-4 rounded-xl shadow">
+                    <h3 className="text-xl font-semibold mb-3">Payment Info</h3>
+
+                    <div className="flex flex-col">
+                        {request.paymentAmount ? (
+                            <>
+                                <p><strong>Payment Status:</strong> {request.paymentStatus}</p>
+                                <p><strong>Amount:</strong> ₹{request.paymentAmount}</p>
+                            </>
+                        ) : (
+                            <p>Amount not added yet.</p>
+                        )}
+
+                        {/* USER: Payment button */}
+                        {request.paymentStatus === "completed" ? (
+                            <span className="inline-block mt-3 px-4 py-2 bg-green-100 text-green-800 rounded-lg font-semibold">
+                                Paid
+                            </span>
+                        ) : (
+                            isUser && request.paymentAmount > 0 && (
+                                <button
+                                    onClick={createPaymentSession}
+                                    className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg mt-3"
+                                >
+                                    💳 Make Payment
+                                </button>
+                            )
+                        )}
+
+
+                        {/* Technician Amount */}
+                        {isTechnician && (
+                            <>
+                                <label className="font-medium">Update Amount</label>
+                                <input
+                                    type="number"
+                                    value={amountUpdate}
+                                    onChange={(e) => setAmountUpdate(e.target.value)}
+                                    className="w-full p-2 border rounded-lg"
+                                />
+                            </>
+                        )}
+                    </div>
+
+                    <div flax="flex-col">
+                        <h3 className="text-xl font-semibold mt-6 mb-3">Address</h3>
+                        <p><strong>Street:</strong> {request.address?.street}</p>
+                        <p><strong>City:</strong> {request.address?.city}</p>
+                        <p><strong>Pincode:</strong> {request.address?.pincode}</p>
+                    </div>
+
+                </div>
+
+                {/* Service Details */}
+                <div className="mt-8 bg-white p-4 rounded-xl shadow md:col-span-2">
+                    <h3 className="text-xl font-semibold mb-3 text-gray-800">Service Details</h3>
+
+                    <div className="grid md:grid-cols-2 gap-4 text-gray-700">
+                        <p><strong>Service Type:</strong> {request.serviceType}</p>
+                        <p><strong>Urgency:</strong> {request.urgency}</p>
+                        <p><strong>Issue Category:</strong> {request.issue}</p>
+                        <p><strong>Issue Description:</strong> {request.issueDescription || "Not Provided"}</p>
+                        <p><strong>Technician Assigned:</strong> {request.technicianName || "Not Assigned"}</p>
+                        <p><strong>Status:</strong> {request.status}</p>
+                    </div>
+                </div>
+
+                {/* Images */}
+                <div className="mt-8 bg-white p-4 rounded-xl shadow md:col-span-2">
+                    <h3 className="text-xl font-semibold mb-3">Images</h3>
+
+                    {request.pic?.length > 0 ? (
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            {request.pic.map((img) => (
+                                <img
+                                    key={img._id}
+                                    src={img.url}
+                                    alt=""
+                                    className="w-full h-40 object-cover rounded-lg shadow-md"
+                                />
+                            ))}
+                        </div>
+                    ) : (
+                        <p>No images uploaded.</p>
+                    )}
+
+                    {isTechnician && (
+                        <div className="mt-4">
+                            <label className="font-medium">Add More Images</label>
+                            <input
+                                type="file"
+                                multiple
+                                onChange={(e) =>
+                                    setNewImages((prev) => [...prev, ...e.target.files])
+                                }
+                                className="w-full p-2 border rounded-lg"
+                            />
+                        </div>
+                    )}
+                </div>
+
+                {/* Technician Controls */}
+                {isTechnician && (
+                    <div className="mt-8 bg-white p-4 rounded-xl shadow md:col-span-2">
+                        <h3 className="text-xl font-semibold mb-4">Technician Controls</h3>
+
+                        <label className="font-medium">Update Request Status</label>
+
+                        <select
+                            value={statusUpdate}
+                            onChange={(e) => setStatusUpdate(e.target.value)}
+                            className="w-full p-2 border rounded-lg mb-4"
+                        >
+                            {["Pending", "Assigned", "In Progress", "Completed", "Cancelled"].map((st) => (
+                                <option key={st} value={st}>{st}</option>
+                            ))}
+                        </select>
+
+                        <button
+                            onClick={handleUpdate}
+                            className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700"
+                        >
+                            ✔ Save Updates
+                        </button>
+                    </div>
+                )}
+
+                {/* Timestamp */}
+                <div className="mt-8 bg-white p-4 rounded-xl shadow md:col-span-2">
+                    <h3 className="text-xl font-semibold mb-3">Timestamps</h3>
+                    <p><strong>Created At:</strong> {new Date(request.createdAt).toLocaleString()}</p>
+                    <p><strong>Updated At:</strong> {new Date(request.updatedAt).toLocaleString()}</p>
+                </div>
+
+            </div>
+        </div>
+    );
+};
+
+export default RequestDetails;
