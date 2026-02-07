@@ -39,7 +39,7 @@
 - Multer + Cloudinary for file uploads
 - Nodemailer for email notifications
 - Socket.io for real-time communication
-- Natural for NLP-based processing (for mobile finding the mobile issue using naive bayes ml algorithms)
+- Natural for NLP-based processing (for finding the mobile issue using naive bayes ml algorithms)
 - dotenv for environment configuration
 - CORS and cookie-parser
 
