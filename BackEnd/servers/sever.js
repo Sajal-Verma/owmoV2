@@ -4,7 +4,6 @@ import http from "http";
 import connectDB from "../database/connect.js";
 import userRout from "../routers/userRout.js";
 import requestRout from "../routers/requestRout.js";
-import QuestionRout from "../routers/QuestionRout.js";
 import PaymentRout from "../routers/PaymentRout.js";
 import cookieParser from "cookie-parser";
 import cors from "cors";
@@ -32,7 +31,6 @@ app.use(express.json());
 // Routes
 app.use("/user", userRout);
 app.use("/request", requestRout);
-app.use("/Question", QuestionRout);
 app.use("/Payment", PaymentRout);
 
 
