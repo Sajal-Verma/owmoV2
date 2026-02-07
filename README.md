@@ -46,4 +46,13 @@
 ---
 
 ## 📁 Folder Structure
+owmoV2/
+├── FrontEnd/ # React + Tailwind + Vite
+├── BackEnd/ # Express API with MongoDB
+├── README.md
+├── package.json
+├── .env # Environment variables
+└── ...other config
+
+
 
