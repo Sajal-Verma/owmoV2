@@ -1,4 +1,4 @@
-import { brands, mobiles, Simg } from "../assets/data";
+import { brands, mobiles, Simg } from "../assets/data.js";
 
 
 function Foot() {

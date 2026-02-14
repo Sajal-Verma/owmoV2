@@ -1,4 +1,4 @@
-import { aboutItms } from "../assets/data";
+import { aboutItms } from "../assets/data.js";
 
 function About() {
 

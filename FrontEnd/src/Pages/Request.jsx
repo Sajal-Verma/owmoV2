@@ -1,5 +1,5 @@
 import { useEffect, useState, useContext } from "react";
-import { ModleData, issueData, Service, UrgencyData, brand as brandList } from "../assets/data";
+import { ModleData, issueData, Service, UrgencyData, brand as brandList } from "../assets/data.js";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../utils/authInterceptor";
 import { toast } from "react-toastify";

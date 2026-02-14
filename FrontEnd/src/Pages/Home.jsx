@@ -1,5 +1,5 @@
 import { useRef, useEffect } from "react";
-import { ServiceData, ModleData } from "../assets/data";
+import { ServiceData, ModleData } from "../assets/data.js";
 import BookButton from "../Componets/BookButton";
 import img from '../assets/image/owmovideo.mp4';
 
