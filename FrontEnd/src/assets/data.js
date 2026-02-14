@@ -1,4 +1,4 @@
-import vec from './image/vector.png'
+import vec from './image/vac.png'
 import ro from './image/round.png'
 import fe from './image/free.png'
 
