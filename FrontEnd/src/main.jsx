@@ -1,6 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import './TellWind.css'
+import './tailwind.css'
 import App from './App.jsx'
 import StoreProvider from './context/StoreProvider' // import your context provider
 
