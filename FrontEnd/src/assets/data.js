@@ -4,7 +4,7 @@ import fe from './image/free.png'
 
 
 import ipho from './image/iphone 1.png'
-import ipa from './image/ipad 1.png'
+import ipa from './image/Ipad 1.png'
 import an from './image/android 1.png'
 import tab from './image/tablet 1.png'
 
