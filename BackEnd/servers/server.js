@@ -1,6 +1,6 @@
 import express from "express";
 import dotenv from "dotenv";
-import http from "http";
+import { createServer } from "http";
 import connectDB from "../database/connect.js";
 import userRout from "../routers/userRout.js";
 import requestRout from "../routers/requestRout.js";
@@ -12,7 +12,7 @@ import socketConnection from "../controller/socket.js";
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT;
+const port = process.env.PORT || 5000;
 
 // Connect DB
 connectDB();
@@ -20,7 +20,7 @@ connectDB();
 // Middlewares
 app.use(cookieParser());
 app.use(cors({
-  origin: process.env.Origin,
+  origin: process.env.CLIENT_URL,
   credentials: true
 }));
 app.use(express.json());
@@ -34,7 +34,7 @@ app.use("/request", requestRout);
 app.use("/Payment", PaymentRout);
 
 
-const server = http.createServer(app);
+const server = createServer(app);
 
 
 socketConnection(server);
